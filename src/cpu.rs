@@ -22,25 +22,10 @@ pub enum AddressingMode {
     NoneAddressing,
 }
 
-impl CPU {
-    pub fn new() -> Self {
-        CPU {
-            register_a: 0,
-            register_x: 0,
-            register_y: 0,
-            status: 0,
-            program_counter: 0,
-            memory: [0; 0xFFFF],
-        }
-    }
+trait Mem {
+    fn mem_read(&self, addr: u16) -> u8;
 
-    fn mem_read(&self, addr: u16) -> u8 {
-        self.memory[addr as usize]
-    }
-
-    fn mem_write(&mut self, addr: u16, data: u8) {
-        self.memory[addr as usize] = data;
-    }
+    fn mem_write(&mut self, addr: u16, data: u8);
 
     fn mem_read_u16(&self, pos: u16) -> u16 {
         let lo = self.mem_read(pos) as u16;
@@ -53,6 +38,29 @@ impl CPU {
         let lo = (data & 0xff) as u8;
         self.mem_write(pos, lo);
         self.mem_write(pos + 1, hi);
+    }
+}
+
+impl Mem for CPU {
+    fn mem_read(&self, addr: u16) -> u8 {
+        self.memory[addr as usize]
+    }
+
+    fn mem_write(&mut self, addr: u16, data: u8) {
+        self.memory[addr as usize] = data;
+    }
+}
+
+impl CPU {
+    pub fn new() -> Self {
+        CPU {
+            register_a: 0,
+            register_x: 0,
+            register_y: 0,
+            status: 0,
+            program_counter: 0,
+            memory: [0; 0xFFFF],
+        }
     }
 
     pub fn reset(&mut self) {
@@ -73,6 +81,43 @@ impl CPU {
         self.load(program);
         self.reset();
         self.run()
+    }
+
+    pub fn run(&mut self) {
+        // note: we move initialization of program_count from here to load function
+        loop {
+            let code = self.mem_read(self.program_counter);
+            self.program_counter += 1;
+
+            match code {
+                /* LDA */
+                0xA9 => {
+                    self.lda(&AddressingMode::Immediate);
+                    self.program_counter += 1;
+                }
+                0xA5 => {
+                    self.lda(&AddressingMode::ZeroPage);
+                    self.program_counter += 1;
+                }
+                0xAD => {
+                    self.lda(&AddressingMode::Absolute);
+                    self.program_counter += 2;
+                }
+                /* STA */
+                0x85 => {
+                    self.sta(&AddressingMode::ZeroPage);
+                    self.program_counter += 1;
+                }
+                0x95 => {
+                    self.sta(&AddressingMode::ZeroPage_X);
+                    self.program_counter += 1;
+                }
+                0xAA => self.tax(),
+                0xE8 => self.inx(),
+                0x00 => return,
+                _ => todo!(),
+            }
+        }
     }
 
     fn lda(&mut self, mode: &AddressingMode) {
@@ -156,43 +201,6 @@ impl CPU {
             }
             AddressingMode::NoneAddressing => {
                 panic!("mode {:?} is not supported", mode);
-            }
-        }
-    }
-
-    pub fn run(&mut self) {
-        // note: we move initialization of program_count from here to load function
-        loop {
-            let code = self.mem_read(self.program_counter);
-            self.program_counter += 1;
-
-            match code {
-                /* LDA */
-                0xA9 => {
-                    self.lda(&AddressingMode::Immediate);
-                    self.program_counter += 1;
-                }
-                0xA5 => {
-                    self.lda(&AddressingMode::ZeroPage);
-                    self.program_counter += 1;
-                }
-                0xAD => {
-                    self.lda(&AddressingMode::Absolute);
-                    self.program_counter += 2;
-                }
-                /* STA */
-                0x85 => {
-                    self.sta(&AddressingMode::ZeroPage);
-                    self.program_counter += 1;
-                }
-                0x95 => {
-                    self.sta(&AddressingMode::ZeroPage_X);
-                    self.program_counter += 1;
-                }
-                0xAA => self.tax(),
-                0xE8 => self.inx(),
-                0x00 => return,
-                _ => todo!(),
             }
         }
     }
