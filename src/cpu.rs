@@ -125,6 +125,13 @@ impl CPU {
                 0x29 | 0x25 | 0x35 | 0x2d | 0x3d | 0x39 | 0x21 | 0x31 => {
                     self.and(&opcode.mode);
                 }
+                /* ASL */
+                0x0a => {
+                    self.asl_accumulator();
+                }
+                0x06 | 0x16 | 0x0e | 0x1e => {
+                    self.asl(&opcode.mode);
+                }
                 /* STA */
                 0x85 | 0x95 | 0x8d | 0x9d | 0x99 | 0x81 | 0x91 => {
                     self.sta(&opcode.mode);
@@ -183,6 +190,31 @@ impl CPU {
         let addr = self.get_operand_address(mode);
         let value = self.mem_read(addr);
         self.set_register_a(value & self.register_a);
+    }
+
+    fn asl_accumulator(&mut self) {
+        let mut data = self.register_a;
+        if data >> 7 == 1 {
+            self.status.insert(CpuFlags::CARRY);
+        } else {
+            self.status.remove(CpuFlags::CARRY);
+        }
+        data = data << 1;
+        self.set_register_a(data);
+    }
+
+    fn asl(&mut self, mode: &AddressingMode) -> u8 {
+        let addr = self.get_operand_address(mode);
+        let mut data = self.mem_read(addr);
+        if data >> 7 == 1 {
+            self.status.insert(CpuFlags::CARRY);
+        } else {
+            self.status.remove(CpuFlags::CARRY);
+        }
+        data = data << 1;
+        self.mem_write(addr, data);
+        self.update_zero_and_negative_flags(data);
+        data
     }
 
     fn lda(&mut self, mode: &AddressingMode) {
@@ -374,5 +406,22 @@ mod test {
         let mut cpu = CPU::new();
         cpu.load_and_run(vec![0xa9, 0x55, 0x29, 0x0f, 0x00]);
         assert_eq!(cpu.register_a, 0x05);
+    }
+
+    #[test]
+    fn test_asl_accumulator() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa9, 0x03, 0x0a, 0x00]);
+        assert_eq!(cpu.register_a, 0x06);
+    }
+
+    #[test]
+    fn test_asl() {
+        let mut cpu = CPU::new();
+        // 0000 0101
+        cpu.load_and_run(vec![0xa9, 0x05, 0x85, 0x10, 0x06, 0x10, 0x00]);
+        let value = cpu.mem_read(0x10);
+        // 0000 1010
+        assert_eq!(value, 0x0A);
     }
 }
