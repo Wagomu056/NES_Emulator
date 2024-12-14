@@ -148,6 +148,26 @@ impl CPU {
                 0x24 | 0x2c => {
                     self.bit(&opcode.mode);
                 }
+                /* BMI */
+                0x30 => {
+                    self.branch(self.status.contains(CpuFlags::NEGATIV));
+                }
+                /* BNE */
+                0xd0 => {
+                    self.branch(!self.status.contains(CpuFlags::ZERO));
+                }
+                /* BPL */
+                0x10 => {
+                    self.branch(!self.status.contains(CpuFlags::NEGATIV));
+                }
+                /* BVC */
+                0x50 => {
+                    self.branch(!self.status.contains(CpuFlags::OVERFLOW));
+                }
+                /* BVS */
+                0x70 => {
+                    self.branch(self.status.contains(CpuFlags::OVERFLOW));
+                }
                 /* STA */
                 0x85 | 0x95 | 0x8d | 0x9d | 0x99 | 0x81 | 0x91 => {
                     self.sta(&opcode.mode);
@@ -525,5 +545,46 @@ mod test {
         assert_eq!(cpu.status.contains(CpuFlags::ZERO), true);
         assert_eq!(cpu.status.contains(CpuFlags::NEGATIV), false);
         assert_eq!(cpu.status.contains(CpuFlags::OVERFLOW), false);
+    }
+
+    #[test]
+    fn test_bmi() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa9, 0xc1, 0x30, 0x02, 0x69, 0x05, 0x69, 0x02, 0x00]);
+        assert_eq!(cpu.register_a, 0xc3);
+    }
+
+    #[test]
+    fn test_bne() {
+        let mut cpu = CPU::new();
+        // @todo use SBC
+        cpu.load_and_run(vec![0xa9, 0xc1, 0xd0, 0x02, 0x69, 0x05, 0x69, 0x02, 0x00]);
+        assert_eq!(cpu.register_a, 0xc3);
+    }
+
+    #[test]
+    fn test_bpl() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa9, 0x71, 0x10, 0x02, 0x69, 0x05, 0x69, 0x02, 0x00]);
+        assert_eq!(cpu.register_a, 0x73);
+    }
+
+    #[test]
+    fn test_bvc() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![
+            0xa9, 0xfe, 0x69, 0x01, 0x50, 0x02, 0x69, 0x02, 0x69, 0x02, 0x00,
+        ]);
+        assert_eq!(cpu.register_a, 0x01);
+    }
+
+    #[test]
+    fn test_bvs() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![
+            0xa9, 0x7f, 0x69, 0x7f, 0x70, 0x02, 0x69, 0x02, 0x69, 0x02, 0x00,
+        ]);
+        // 0x7f + 0x7f -> 0xfe + 0x02 -> 0x00
+        assert_eq!(cpu.register_a, 0x00);
     }
 }
