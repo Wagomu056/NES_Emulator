@@ -132,6 +132,10 @@ impl CPU {
                 0x06 | 0x16 | 0x0e | 0x1e => {
                     self.asl(&opcode.mode);
                 }
+                /* BCC */
+                0x90 => {
+                    self.branch(!self.status.contains(CpuFlags::CARRY));
+                }
                 /* STA */
                 0x85 | 0x95 | 0x8d | 0x9d | 0x99 | 0x81 | 0x91 => {
                     self.sta(&opcode.mode);
@@ -215,6 +219,18 @@ impl CPU {
         self.mem_write(addr, data);
         self.update_zero_and_negative_flags(data);
         data
+    }
+
+    fn branch(&mut self, condition: bool) {
+        if condition {
+            let jump = self.mem_read(self.program_counter) as i8;
+            let jump_addr = self
+                .program_counter
+                .wrapping_add(jump as u16)
+                .wrapping_add(1); // jump先のアドレスはラベルの1つ前に置き換えられる
+
+            self.program_counter = jump_addr;
+        }
     }
 
     fn lda(&mut self, mode: &AddressingMode) {
@@ -423,5 +439,12 @@ mod test {
         let value = cpu.mem_read(0x10);
         // 0000 1010
         assert_eq!(value, 0x0A);
+    }
+
+    #[test]
+    fn test_bcc() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa9, 0xfe, 0x69, 0x01, 0x90, 0xfc, 0x00]);
+        assert_eq!(cpu.register_a, 0x00);
     }
 }
