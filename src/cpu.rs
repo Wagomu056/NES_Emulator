@@ -144,6 +144,10 @@ impl CPU {
                 0xf0 => {
                     self.branch(self.status.contains(CpuFlags::ZERO));
                 }
+                /* BIT */
+                0x24 | 0x2c => {
+                    self.bit(&opcode.mode);
+                }
                 /* STA */
                 0x85 | 0x95 | 0x8d | 0x9d | 0x99 | 0x81 | 0x91 => {
                     self.sta(&opcode.mode);
@@ -245,6 +249,20 @@ impl CPU {
         let addr = self.get_operand_address(mode);
         let value = self.mem_read(addr);
         self.set_register_a(value);
+    }
+
+    fn bit(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let data = self.mem_read(addr);
+        let and = self.register_a & data;
+        if and == 0 {
+            self.status.insert(CpuFlags::ZERO);
+        } else {
+            self.status.remove(CpuFlags::ZERO);
+        }
+
+        self.status.set(CpuFlags::NEGATIV, data & 0b1000_0000 > 0);
+        self.status.set(CpuFlags::OVERFLOW, data & 0b0100_0000 > 0);
     }
 
     fn sta(&mut self, mode: &AddressingMode) {
@@ -481,5 +499,23 @@ mod test {
         // LDA #$20
         cpu.load_and_run(vec![0xa9, 0x00, 0xf0, 0x02, 0xa9, 0x10, 0xa9, 0x20, 0x00]);
         assert_eq!(cpu.register_a, 0x20);
+    }
+
+    #[test]
+    fn test_bit_nv_flag() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa9, 0xc0, 0x85, 0x00, 0xa9, 0xf0, 0x24, 0x00, 0x00]);
+        assert_eq!(cpu.status.contains(CpuFlags::ZERO), false);
+        assert_eq!(cpu.status.contains(CpuFlags::NEGATIV), true);
+        assert_eq!(cpu.status.contains(CpuFlags::OVERFLOW), true);
+    }
+
+    #[test]
+    fn test_bit_zero_flag() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa9, 0x0c, 0x85, 0x00, 0xa9, 0xf0, 0x24, 0x00, 0x00]);
+        assert_eq!(cpu.status.contains(CpuFlags::ZERO), true);
+        assert_eq!(cpu.status.contains(CpuFlags::NEGATIV), false);
+        assert_eq!(cpu.status.contains(CpuFlags::OVERFLOW), false);
     }
 }
