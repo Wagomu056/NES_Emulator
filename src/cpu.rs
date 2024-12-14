@@ -136,6 +136,14 @@ impl CPU {
                 0x90 => {
                     self.branch(!self.status.contains(CpuFlags::CARRY));
                 }
+                /* BCS */
+                0xb0 => {
+                    self.branch(self.status.contains(CpuFlags::CARRY));
+                }
+                /* BEQ */
+                0xf0 => {
+                    self.branch(self.status.contains(CpuFlags::ZERO));
+                }
                 /* STA */
                 0x85 | 0x95 | 0x8d | 0x9d | 0x99 | 0x81 | 0x91 => {
                     self.sta(&opcode.mode);
@@ -446,5 +454,32 @@ mod test {
         let mut cpu = CPU::new();
         cpu.load_and_run(vec![0xa9, 0xfe, 0x69, 0x01, 0x90, 0xfc, 0x00]);
         assert_eq!(cpu.register_a, 0x00);
+    }
+
+    #[test]
+    fn test_bcs() {
+        let mut cpu = CPU::new();
+        // LDA #$ff
+        // ADC #$01
+        // BCS load20
+        // LDA #$10
+        // load20:
+        // LDA #$20
+        cpu.load_and_run(vec![
+            0xa9, 0xff, 0x69, 0x01, 0xb0, 0x02, 0xa9, 0x10, 0xa9, 0x20, 0x00,
+        ]);
+        assert_eq!(cpu.register_a, 0x20);
+    }
+
+    #[test]
+    fn test_beq() {
+        let mut cpu = CPU::new();
+        // LDA #$00
+        // BEQ load20
+        // LDA #$10
+        // load20:
+        // LDA #$20
+        cpu.load_and_run(vec![0xa9, 0x00, 0xf0, 0x02, 0xa9, 0x10, 0xa9, 0x20, 0x00]);
+        assert_eq!(cpu.register_a, 0x20);
     }
 }
