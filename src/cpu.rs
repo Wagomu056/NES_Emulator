@@ -411,6 +411,14 @@ mod test {
     }
 
     #[test]
+    fn test_sta_absolute() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa9, 0xc5, 0x8d, 0x01, 0xc0, 0x00]);
+        let value = cpu.mem_read_u16(0xc001);
+        assert_eq!(value, 0xc5);
+    }
+
+    #[test]
     fn test_adc() {
         let mut cpu = CPU::new();
         cpu.load_and_run(vec![0x69, 0x05, 0x00]);
