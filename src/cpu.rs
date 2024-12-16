@@ -186,7 +186,11 @@ impl CPU {
                 }
                 /* CMP */
                 0xc9 | 0xc5 | 0xd5 | 0xcd | 0xdd | 0xd9 | 0xc1 | 0xd1 => {
-                    self.cmp(&opcode.mode);
+                    self.compare(&opcode.mode, self.register_a);
+                }
+                /* CPX */
+                0xe0 | 0xe4 | 0xec => {
+                    self.compare(&opcode.mode, self.register_x);
                 }
                 /* STA */
                 0x85 | 0x95 | 0x8d | 0x9d | 0x99 | 0x81 | 0x91 => {
@@ -320,17 +324,17 @@ impl CPU {
         self.update_zero_and_negative_flags(self.register_x);
     }
 
-    fn cmp(&mut self, mode: &AddressingMode) {
+    fn compare(&mut self, mode: &AddressingMode, compare_with: u8) {
         let addr = self.get_operand_address(mode);
         let value = self.mem_read(addr);
 
-        if self.register_a >= value {
+        if compare_with >= value {
             self.status.insert(CpuFlags::CARRY);
         } else {
             self.status.remove(CpuFlags::CARRY);
         }
 
-        self.update_zero_and_negative_flags(self.register_a.wrapping_sub(value));
+        self.update_zero_and_negative_flags(compare_with.wrapping_sub(value));
     }
 
     fn update_zero_and_negative_flags(&mut self, result: u8) {
@@ -665,4 +669,6 @@ mod test {
         cpu.load_and_run(vec![0xa9, 0x02, 0x85, 0xc0, 0xa9, 0x01, 0xc5, 0xc0, 0x00]);
         assert_eq!(cpu.status.contains(CpuFlags::CARRY), false);
     }
+
+    // @todo When add LDX, must add CMX test
 }
