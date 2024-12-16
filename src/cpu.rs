@@ -168,6 +168,23 @@ impl CPU {
                 0x70 => {
                     self.branch(self.status.contains(CpuFlags::OVERFLOW));
                 }
+                /* CLC */
+                0x18 => {
+                    self.clear_carry_flag();
+                }
+                /* CLD */
+                0xd8 => {
+                    self.status.remove(CpuFlags::DECIMAL_MODE);
+                }
+                /* CLI */
+                0x58 => {
+                    self.status.remove(CpuFlags::INTERRUPT_DISABLE);
+                }
+                /* CLV */
+                0xb8 => {
+                    self.status.remove(CpuFlags::OVERFLOW);
+                }
+
                 /* STA */
                 0x85 | 0x95 | 0x8d | 0x9d | 0x99 | 0x81 | 0x91 => {
                     self.sta(&opcode.mode);
@@ -360,6 +377,10 @@ impl CPU {
                 panic!("mode {:?} is not supported", mode);
             }
         }
+    }
+
+    fn clear_carry_flag(&mut self) {
+        self.status.remove(CpuFlags::CARRY);
     }
 }
 
@@ -586,5 +607,19 @@ mod test {
         ]);
         // 0x7f + 0x7f -> 0xfe + 0x02 -> 0x00
         assert_eq!(cpu.register_a, 0x00);
+    }
+
+    #[test]
+    fn test_clc() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa9, 0xff, 0x69, 0x01, 0x18, 0x00]);
+        assert_eq!(cpu.status.contains(CpuFlags::CARRY), false);
+    }
+
+    #[test]
+    fn test_clv() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa9, 0x81, 0x69, 0x81, 0xb8, 0x00]);
+        assert_eq!(cpu.status.contains(CpuFlags::OVERFLOW), false);
     }
 }
