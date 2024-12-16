@@ -184,7 +184,10 @@ impl CPU {
                 0xb8 => {
                     self.status.remove(CpuFlags::OVERFLOW);
                 }
-
+                /* CMP */
+                0xc9 | 0xc5 | 0xd5 | 0xcd | 0xdd | 0xd9 | 0xc1 | 0xd1 => {
+                    self.cmp(&opcode.mode);
+                }
                 /* STA */
                 0x85 | 0x95 | 0x8d | 0x9d | 0x99 | 0x81 | 0x91 => {
                     self.sta(&opcode.mode);
@@ -315,6 +318,19 @@ impl CPU {
     fn inx(&mut self) {
         self.register_x = self.register_x.wrapping_add(1);
         self.update_zero_and_negative_flags(self.register_x);
+    }
+
+    fn cmp(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let value = self.mem_read(addr);
+
+        if self.register_a >= value {
+            self.status.insert(CpuFlags::CARRY);
+        } else {
+            self.status.remove(CpuFlags::CARRY);
+        }
+
+        self.update_zero_and_negative_flags(self.register_a.wrapping_sub(value));
     }
 
     fn update_zero_and_negative_flags(&mut self, result: u8) {
@@ -621,5 +637,32 @@ mod test {
         let mut cpu = CPU::new();
         cpu.load_and_run(vec![0xa9, 0x81, 0x69, 0x81, 0xb8, 0x00]);
         assert_eq!(cpu.status.contains(CpuFlags::OVERFLOW), false);
+    }
+
+    #[test]
+    fn test_cmp_negative() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![
+            0xa9, 0x01, 0x8d, 0x10, 0xc0, 0xa9, 0x81, 0xcd, 0x10, 0xc0, 0x00,
+        ]);
+        assert_eq!(cpu.status.contains(CpuFlags::NEGATIV), true);
+        assert_eq!(cpu.status.contains(CpuFlags::CARRY), true);
+        assert_eq!(cpu.status.contains(CpuFlags::ZERO), false);
+    }
+
+    #[test]
+    fn test_cmp_zero() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa9, 0x01, 0xc9, 0x01, 0x00]);
+        assert_eq!(cpu.status.contains(CpuFlags::NEGATIV), false);
+        assert_eq!(cpu.status.contains(CpuFlags::CARRY), true);
+        assert_eq!(cpu.status.contains(CpuFlags::ZERO), true);
+    }
+
+    #[test]
+    fn test_cmp_carry_false() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa9, 0x02, 0x85, 0xc0, 0xa9, 0x01, 0xc5, 0xc0, 0x00]);
+        assert_eq!(cpu.status.contains(CpuFlags::CARRY), false);
     }
 }
