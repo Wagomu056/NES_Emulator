@@ -192,6 +192,10 @@ impl CPU {
                 0xe0 | 0xe4 | 0xec => {
                     self.compare(&opcode.mode, self.register_x);
                 }
+                /* CPY */
+                0xc0 | 0xc4 | 0xcc => {
+                    self.compare(&opcode.mode, self.register_y);
+                }
                 /* STA */
                 0x85 | 0x95 | 0x8d | 0x9d | 0x99 | 0x81 | 0x91 => {
                     self.sta(&opcode.mode);
