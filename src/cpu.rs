@@ -121,6 +121,10 @@ impl CPU {
                 0xa9 | 0xa5 | 0xb5 | 0xad | 0xbd | 0xb9 | 0xa1 | 0xb1 => {
                     self.lda(&opcode.mode);
                 }
+                /* LDX */
+                0xa2 | 0xa6 | 0xb6 | 0xae | 0xbe => {
+                    self.ldx(&opcode.mode);
+                }
                 /* AND */
                 0x29 | 0x25 | 0x35 | 0x2d | 0x3d | 0x39 | 0x21 | 0x31 => {
                     self.and(&opcode.mode);
@@ -256,6 +260,11 @@ impl CPU {
         self.update_zero_and_negative_flags(self.register_a);
     }
 
+    fn set_register_x(&mut self, value: u8) {
+        self.register_x = value;
+        self.update_zero_and_negative_flags(self.register_x);
+    }
+
     fn adc(&mut self, mode: &AddressingMode) {
         let addr = self.get_operand_address(mode);
         let value = self.mem_read(addr);
@@ -309,6 +318,12 @@ impl CPU {
         let addr = self.get_operand_address(mode);
         let value = self.mem_read(addr);
         self.set_register_a(value);
+    }
+
+    fn ldx(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let value = self.mem_read(addr);
+        self.set_register_x(value)
     }
 
     fn bit(&mut self, mode: &AddressingMode) {
@@ -464,6 +479,15 @@ mod test {
         let mut cpu = CPU::new();
         cpu.load_and_run(vec![0xa9, 0xF0, 0x00]);
         assert_eq!(cpu.status.contains(CpuFlags::NEGATIV), true);
+    }
+
+    #[test]
+    fn test_ldx() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa2, 0x05, 0x00]);
+        assert_eq!(cpu.register_x, 0x05);
+        assert_eq!(cpu.status.contains(CpuFlags::ZERO), false);
+        assert_eq!(cpu.status.contains(CpuFlags::NEGATIV), false);
     }
 
     #[test]
