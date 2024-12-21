@@ -200,6 +200,14 @@ impl CPU {
                 0xc6 | 0xd6 | 0xce | 0xde => {
                     self.dec(&opcode.mode);
                 }
+                /* DEX */
+                0xca => {
+                    self.dex();
+                }
+                /* DEY */
+                0x88 => {
+                    self.dey();
+                }
                 /* STA */
                 0x85 | 0x95 | 0x8d | 0x9d | 0x99 | 0x81 | 0x91 => {
                     self.sta(&opcode.mode);
@@ -352,6 +360,16 @@ impl CPU {
         self.mem_write(addr, value);
 
         self.update_zero_and_negative_flags(value);
+    }
+
+    fn dex(&mut self) {
+        self.register_x = self.register_x.wrapping_sub(1);
+        self.update_zero_and_negative_flags(self.register_x);
+    }
+
+    fn dey(&mut self) {
+        self.register_y = self.register_y.wrapping_sub(1);
+        self.update_zero_and_negative_flags(self.register_y);
     }
 
     fn update_zero_and_negative_flags(&mut self, result: u8) {
@@ -695,4 +713,6 @@ mod test {
         assert_eq!(cpu.status.contains(CpuFlags::ZERO), true);
     }
     // @todo When add LDX, must add CMX test
+    // @todo When add LDX, must add DEX test
+    // @todo When add LDY, must add DEY test
 }
