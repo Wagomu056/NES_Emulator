@@ -196,6 +196,10 @@ impl CPU {
                 0xc0 | 0xc4 | 0xcc => {
                     self.compare(&opcode.mode, self.register_y);
                 }
+                /* DEC */
+                0xc6 | 0xd6 | 0xce | 0xde => {
+                    self.dec(&opcode.mode);
+                }
                 /* STA */
                 0x85 | 0x95 | 0x8d | 0x9d | 0x99 | 0x81 | 0x91 => {
                     self.sta(&opcode.mode);
@@ -339,6 +343,15 @@ impl CPU {
         }
 
         self.update_zero_and_negative_flags(compare_with.wrapping_sub(value));
+    }
+
+    fn dec(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let value = self.mem_read(addr);
+        let value = value.wrapping_sub(1);
+        self.mem_write(addr, value);
+
+        self.update_zero_and_negative_flags(value);
     }
 
     fn update_zero_and_negative_flags(&mut self, result: u8) {
@@ -674,5 +687,12 @@ mod test {
         assert_eq!(cpu.status.contains(CpuFlags::CARRY), false);
     }
 
+    #[test]
+    fn test_dec() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa9, 0x01, 0x85, 0xf0, 0xc6, 0xf0, 0x00]);
+        assert_eq!(cpu.mem_read(0xf0), 0x00);
+        assert_eq!(cpu.status.contains(CpuFlags::ZERO), true);
+    }
     // @todo When add LDX, must add CMX test
 }
