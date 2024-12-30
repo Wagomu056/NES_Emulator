@@ -497,6 +497,24 @@ mod test {
     }
 
     #[test]
+    fn test_lda_indirect_y() {
+        let mut cpu = CPU::new();
+        // LDA #$42
+        // STA $2020
+        // LDA #$10
+        // STA $00
+        // LDA #$20
+        // STA $01
+        // LDY #$10
+        // LDA ($00),Y
+        cpu.load_and_run(vec![
+            0xa9, 0x42, 0x8d, 0x20, 0x20, 0xa9, 0x10, 0x85, 0x00, 0xa9, 0x20, 0x85, 0x01, 0xa0,
+            0x10, 0xb1, 0x00, 0x00,
+        ]);
+        assert_eq!(cpu.register_a, 0x42);
+    }
+
+    #[test]
     fn test_ldx() {
         let mut cpu = CPU::new();
         cpu.load_and_run(vec![0xa2, 0x05, 0x00]);
