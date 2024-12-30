@@ -117,14 +117,6 @@ impl CPU {
                 0x69 | 0x65 | 0x75 | 0x6d | 0x7d | 0x79 | 0x61 | 0x71 => {
                     self.adc(&opcode.mode);
                 }
-                /* LDA */
-                0xa9 | 0xa5 | 0xb5 | 0xad | 0xbd | 0xb9 | 0xa1 | 0xb1 => {
-                    self.lda(&opcode.mode);
-                }
-                /* LDX */
-                0xa2 | 0xa6 | 0xb6 | 0xae | 0xbe => {
-                    self.ldx(&opcode.mode);
-                }
                 /* AND */
                 0x29 | 0x25 | 0x35 | 0x2d | 0x3d | 0x39 | 0x21 | 0x31 => {
                     self.and(&opcode.mode);
@@ -212,6 +204,18 @@ impl CPU {
                 0x88 => {
                     self.dey();
                 }
+                /* LDA */
+                0xa9 | 0xa5 | 0xb5 | 0xad | 0xbd | 0xb9 | 0xa1 | 0xb1 => {
+                    self.lda(&opcode.mode);
+                }
+                /* LDX */
+                0xa2 | 0xa6 | 0xb6 | 0xae | 0xbe => {
+                    self.ldx(&opcode.mode);
+                }
+                /* LDY */
+                0xa0 | 0xa4 | 0xb4 | 0xac | 0xbc => {
+                    self.ldy(&opcode.mode);
+                }
                 /* STA */
                 0x85 | 0x95 | 0x8d | 0x9d | 0x99 | 0x81 | 0x91 => {
                     self.sta(&opcode.mode);
@@ -263,6 +267,11 @@ impl CPU {
     fn set_register_x(&mut self, value: u8) {
         self.register_x = value;
         self.update_zero_and_negative_flags(self.register_x);
+    }
+
+    fn set_register_y(&mut self, value: u8) {
+        self.register_y = value;
+        self.update_zero_and_negative_flags(self.register_y);
     }
 
     fn adc(&mut self, mode: &AddressingMode) {
@@ -324,6 +333,12 @@ impl CPU {
         let addr = self.get_operand_address(mode);
         let value = self.mem_read(addr);
         self.set_register_x(value)
+    }
+
+    fn ldy(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let value = self.mem_read(addr);
+        self.set_register_y(value)
     }
 
     fn bit(&mut self, mode: &AddressingMode) {
@@ -488,6 +503,19 @@ mod test {
         assert_eq!(cpu.register_x, 0x05);
         assert_eq!(cpu.status.contains(CpuFlags::ZERO), false);
         assert_eq!(cpu.status.contains(CpuFlags::NEGATIV), false);
+    }
+
+    #[test]
+    fn test_ldy() {
+        let mut cpu = CPU::new();
+        // LDA #$c5
+        // STA $15
+        // LDX #$05
+        // LDY $10,X
+        cpu.load_and_run(vec![0xa9, 0xc5, 0x85, 0x15, 0xa2, 0x05, 0xb4, 0x10, 0x00]);
+        assert_eq!(cpu.register_y, 0xc5);
+        assert_eq!(cpu.status.contains(CpuFlags::ZERO), false);
+        assert_eq!(cpu.status.contains(CpuFlags::NEGATIV), true);
     }
 
     #[test]
@@ -738,7 +766,14 @@ mod test {
         assert_eq!(cpu.status.contains(CpuFlags::ZERO), true);
     }
 
-    // @todo When add LDY, must add CPY test
+    #[test]
+    fn test_cpy() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa0, 0x01, 0xc0, 0x01, 0x00]);
+        assert_eq!(cpu.status.contains(CpuFlags::NEGATIV), false);
+        assert_eq!(cpu.status.contains(CpuFlags::CARRY), true);
+        assert_eq!(cpu.status.contains(CpuFlags::ZERO), true);
+    }
 
     #[test]
     fn test_dec() {
@@ -755,5 +790,10 @@ mod test {
         assert_eq!(cpu.status.contains(CpuFlags::ZERO), true);
     }
 
-    // @todo When add LDY, must add DEY test
+    #[test]
+    fn test_dey() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa0, 0x01, 0x88, 0x00]);
+        assert_eq!(cpu.status.contains(CpuFlags::ZERO), true);
+    }
 }
