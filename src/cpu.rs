@@ -730,13 +730,30 @@ mod test {
     }
 
     #[test]
+    fn test_cpx() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa2, 0x01, 0xe0, 0x01, 0x00]);
+        assert_eq!(cpu.status.contains(CpuFlags::NEGATIV), false);
+        assert_eq!(cpu.status.contains(CpuFlags::CARRY), true);
+        assert_eq!(cpu.status.contains(CpuFlags::ZERO), true);
+    }
+
+    // @todo When add LDY, must add CPY test
+
+    #[test]
     fn test_dec() {
         let mut cpu = CPU::new();
         cpu.load_and_run(vec![0xa9, 0x01, 0x85, 0xf0, 0xc6, 0xf0, 0x00]);
         assert_eq!(cpu.mem_read(0xf0), 0x00);
         assert_eq!(cpu.status.contains(CpuFlags::ZERO), true);
     }
-    // @todo When add LDX, must add CMX test
-    // @todo When add LDX, must add DEX test
+
+    #[test]
+    fn test_dex() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa2, 0x01, 0xca, 0x00]);
+        assert_eq!(cpu.status.contains(CpuFlags::ZERO), true);
+    }
+
     // @todo When add LDY, must add DEY test
 }
