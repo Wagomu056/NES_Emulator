@@ -497,21 +497,91 @@ mod test {
     }
 
     #[test]
-    fn test_lda_indirect_y() {
+    fn test_lda_zero_page() {
         let mut cpu = CPU::new();
-        // LDA #$42
-        // STA $2020
-        // LDA #$10
-        // STA $00
-        // LDA #$20
-        // STA $01
-        // LDY #$10
-        // LDA ($00),Y
+        cpu.load_and_run(vec![0xa9, 0x42, 0x85, 0x20, 0xa9, 0x00, 0xa5, 0x20, 0x00]);
+        assert_eq!(cpu.register_a, 0x42);
+    }
+
+    #[test]
+    fn test_lda_zero_page_x() {
+        let mut cpu = CPU::new();
         cpu.load_and_run(vec![
-            0xa9, 0x42, 0x8d, 0x20, 0x20, 0xa9, 0x10, 0x85, 0x00, 0xa9, 0x20, 0x85, 0x01, 0xa0,
-            0x10, 0xb1, 0x00, 0x00,
+            0xa9, 0x42, 0x85, 0x22, 0xa2, 0x02, 0xa9, 0x00, 0xb5, 0x20, 0x00,
         ]);
         assert_eq!(cpu.register_a, 0x42);
+    }
+
+    #[test]
+    fn test_lda_absolute() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![
+            0xa9, 0x42, 0x8d, 0x20, 0x20, 0xa9, 0x00, 0xad, 0x20, 0x20, 0x00,
+        ]);
+        assert_eq!(cpu.register_a, 0x42);
+    }
+
+    #[test]
+    fn test_lda_absolute_x() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![
+            0xa9, 0x42, 0x8d, 0x20, 0x20, 0xa2, 0x10, 0xa9, 0x00, 0xbd, 0x10, 0x20, 0x00,
+        ]);
+        assert_eq!(cpu.register_a, 0x42);
+    }
+
+    #[test]
+    fn test_lda_absolute_y() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![
+            0xa9, 0x42, 0x8d, 0x20, 0x20, 0xa0, 0x10, 0xa9, 0x00, 0xb9, 0x10, 0x20, 0x00,
+        ]);
+        assert_eq!(cpu.register_a, 0x42);
+    }
+
+    #[test]
+    fn test_lda_indirect_x() {
+        let mut cpu = CPU::new();
+        // LDA #$80
+        // STA $01
+        // LDA #$ff
+        // STA $80
+        // LDA #$0
+        // LDX #$01
+        // LDA ($00, X)
+        cpu.load_and_run(vec![
+            0xa9, 0x80, 0x85, 0x01, 0xa9, 0xff, 0x85, 0x80, 0xa9, 0x00, 0xa2, 0x01, 0xa1, 0x00,
+            0x00,
+        ]);
+        // $00 -> #$00
+        // #$00 + #$01(X)
+        // $01 -> #$80
+        // $02 -> #$00
+        // $0080 -> #$ff
+        // A = #$ff
+        assert_eq!(cpu.register_a, 0xff);
+    }
+
+    #[test]
+    fn test_lda_indirect_y() {
+        let mut cpu = CPU::new();
+        // LDA #$80
+        // STA $01
+        // LDA #$ff
+        // STA $80
+        // LDA #$0
+        // LDY #$02
+        // LDA ($00), Y
+        cpu.load_and_run(vec![
+            0xa9, 0x80, 0x85, 0x01, 0xa9, 0xff, 0x85, 0x06, 0xa9, 0x00, 0xa0, 0x02, 0xb1, 0x00,
+            0x00,
+        ]);
+        // $00 -> #$00
+        // $01 -> #$80
+        // #$8000 + #$02(Y)
+        // $8020 -> #$85 (loaded ope code)
+        // A = #$85
+        assert_eq!(cpu.register_a, 0x85);
     }
 
     #[test]
