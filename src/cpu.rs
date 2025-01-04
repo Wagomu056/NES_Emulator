@@ -212,6 +212,10 @@ impl CPU {
                 0xe6 | 0xf6 | 0xee | 0xfe => {
                     self.inc(&opcode.mode);
                 }
+                /* INX */
+                0xE8 => self.inx(),
+                /* INY */
+                0xc8 => self.iny(),
                 /* LDA */
                 0xa9 | 0xa5 | 0xb5 | 0xad | 0xbd | 0xb9 | 0xa1 | 0xb1 => {
                     self.lda(&opcode.mode);
@@ -230,7 +234,6 @@ impl CPU {
                 }
 
                 0xAA => self.tax(),
-                0xE8 => self.inx(),
                 0x00 => return,
                 _ => todo!(),
             }
@@ -376,6 +379,11 @@ impl CPU {
     fn inx(&mut self) {
         self.register_x = self.register_x.wrapping_add(1);
         self.update_zero_and_negative_flags(self.register_x);
+    }
+
+    fn iny(&mut self) {
+        self.register_y = self.register_y.wrapping_add(1);
+        self.update_zero_and_negative_flags(self.register_y);
     }
 
     fn compare(&mut self, mode: &AddressingMode, compare_with: u8) {
@@ -921,6 +929,22 @@ mod test {
         let mut cpu = CPU::new();
         cpu.load_and_run(vec![0xa9, 0xff, 0x85, 0x11, 0xe6, 0x11, 0x00]);
         assert_eq!(cpu.mem_read(0x11), 0x00);
+        assert_eq!(cpu.status.contains(CpuFlags::ZERO), true);
+    }
+
+    #[test]
+    fn test_inx() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa2, 0xff, 0xe8, 0x00]);
+        assert_eq!(cpu.register_x, 0x00);
+        assert_eq!(cpu.status.contains(CpuFlags::ZERO), true);
+    }
+
+    #[test]
+    fn test_iny() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa0, 0xff, 0xc8, 0x00]);
+        assert_eq!(cpu.register_y, 0x00);
         assert_eq!(cpu.status.contains(CpuFlags::ZERO), true);
     }
 }
