@@ -228,6 +228,30 @@ impl CPU {
                 0xa0 | 0xa4 | 0xb4 | 0xac | 0xbc => {
                     self.ldy(&opcode.mode);
                 }
+                /* JMP */
+                0x4c => {
+                    let addr = self.get_operand_address(&AddressingMode::Immediate);
+                    let value = self.mem_read_u16(addr);
+                    self.program_counter = value;
+                }
+                0x6c => {
+                    let mem_address = self.mem_read_u16(self.program_counter);
+                    // let indirect_ref = self.mem_read_u16(mem_address);
+                    //6502 bug mode with page boundary:
+                    //  if address $3000 contains $40, $30FF contains $80, and $3100 contains $50,
+                    // the result of JMP ($30FF) will be a transfer of control to $4080 rather than $5080 as you intended
+                    // i.e. the 6502 took the low byte of the address from $30FF and the high byte from $3000
+
+                    let indirect_ref = if mem_address & 0x00FF == 0x00FF {
+                        let lo = self.mem_read(mem_address);
+                        let hi = self.mem_read(mem_address & 0xFF00);
+                        (hi as u16) << 8 | (lo as u16)
+                    } else {
+                        self.mem_read_u16(mem_address)
+                    };
+
+                    self.program_counter = indirect_ref;
+                }
                 /* STA */
                 0x85 | 0x95 | 0x8d | 0x9d | 0x99 | 0x81 | 0x91 => {
                     self.sta(&opcode.mode);
@@ -946,5 +970,26 @@ mod test {
         cpu.load_and_run(vec![0xa0, 0xff, 0xc8, 0x00]);
         assert_eq!(cpu.register_y, 0x00);
         assert_eq!(cpu.status.contains(CpuFlags::ZERO), true);
+    }
+
+    #[test]
+    fn test_jmp() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![
+            0xa9, 0x55, 0x4c, 0x07, 0x80, 0x85, 0x10, 0xa0, 0x66, 0x00,
+        ]);
+        assert_eq!(cpu.register_y, 0x66);
+        assert_eq!(cpu.mem_read(0x10), 0x00);
+    }
+
+    #[test]
+    fn test_jmp_absolute() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![
+            0xa9, 0x0f, 0x85, 0x20, 0xa9, 0x80, 0x85, 0x21, 0xa9, 0x55, 0x6c, 0x20, 0x00, 0x85,
+            0x10, 0xa0, 0x66, 0x00,
+        ]);
+        assert_eq!(cpu.register_y, 0x66);
+        assert_eq!(cpu.mem_read(0x10), 0x00);
     }
 }
