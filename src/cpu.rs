@@ -15,12 +15,16 @@ bitflags! {
     }
 }
 
+const STACK: u16 = 0x0100;
+const STACK_RESET: u8 = 0xfd;
+
 pub struct CPU {
     pub register_a: u8,
     pub register_x: u8,
     pub register_y: u8,
     pub status: CpuFlags,
     pub program_counter: u16,
+    pub stack_pointer: u8,
     memory: [u8; 0xFFFF],
 }
 
@@ -76,6 +80,7 @@ impl CPU {
             register_y: 0,
             status: CpuFlags::from_bits_truncate(0b100100),
             program_counter: 0,
+            stack_pointer: STACK_RESET,
             memory: [0; 0xFFFF],
         }
     }
@@ -85,6 +90,7 @@ impl CPU {
         self.register_x = 0;
         self.register_y = 0;
         self.status = CpuFlags::from_bits_truncate(0b100100);
+        self.stack_pointer = STACK_RESET;
 
         self.program_counter = self.mem_read_u16(0xFFFC);
     }
@@ -251,6 +257,20 @@ impl CPU {
                     };
 
                     self.program_counter = indirect_ref;
+                }
+                /* JSR */
+                0x20 => {
+                    // 戻り先アドレスの説明
+                    // ope, addr-lo, addr-hiとメモリにロードされているので+2
+                    // program_counterはここに来る頃にはすでに+1されているので、-1
+                    // RTS時にprogram_counterを+1するので、stack時点では１つ前のアドレスを記録する
+                    // (webのシミュレータでも同じようなアドレスが記録されている)
+                    self.stack_push_u16(self.program_counter + 2 - 1);
+                    self.program_counter = self.mem_read_u16(self.program_counter);
+                }
+                /* RTS */
+                0x60 => {
+                    self.program_counter = self.stack_pop_u16() + 1;
                 }
                 /* STA */
                 0x85 | 0x95 | 0x8d | 0x9d | 0x99 | 0x81 | 0x91 => {
@@ -455,6 +475,29 @@ impl CPU {
         self.mem_write(addr, value);
 
         self.update_zero_and_negative_flags(value);
+    }
+
+    fn stack_pop(&mut self) -> u8 {
+        self.stack_pointer = self.stack_pointer.wrapping_add(1);
+        self.mem_read((STACK as u16) + (self.stack_pointer as u16))
+    }
+
+    fn stack_push(&mut self, data: u8) {
+        self.mem_write((STACK as u16) + (self.stack_pointer as u16), data);
+        self.stack_pointer = self.stack_pointer.wrapping_sub(1);
+    }
+
+    fn stack_pop_u16(&mut self) -> u16 {
+        let lo = self.stack_pop() as u16;
+        let hi = self.stack_pop() as u16;
+        (hi << 8) | lo
+    }
+
+    fn stack_push_u16(&mut self, data: u16) {
+        let hi = (data >> 8) as u8;
+        let lo = (data & 0xff) as u8;
+        self.stack_push(hi);
+        self.stack_push(lo);
     }
 
     fn update_zero_and_negative_flags(&mut self, result: u8) {
@@ -991,5 +1034,14 @@ mod test {
         ]);
         assert_eq!(cpu.register_y, 0x66);
         assert_eq!(cpu.mem_read(0x10), 0x00);
+    }
+
+    #[test]
+    fn test_jsr_rts() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![
+            0x20, 0x07, 0x80, 0x20, 0x0a, 0x80, 0x00, 0xa9, 0x10, 0x60, 0x69, 0x02, 0x60, 0x00,
+        ]);
+        assert_eq!(cpu.register_a, 0x12);
     }
 }
