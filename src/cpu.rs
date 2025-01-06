@@ -272,6 +272,12 @@ impl CPU {
                 0x60 => {
                     self.program_counter = self.stack_pop_u16() + 1;
                 }
+                /* LSR */
+                0x4a => {
+                    let data = self.lsr_core(self.register_a);
+                    self.set_register_a(data);
+                }
+                0x46 | 0x56 | 0x4e | 0x5e => self.lsr(&opcode.mode),
                 /* STA */
                 0x85 | 0x95 | 0x8d | 0x9d | 0x99 | 0x81 | 0x91 => {
                     self.sta(&opcode.mode);
@@ -498,6 +504,24 @@ impl CPU {
         let lo = (data & 0xff) as u8;
         self.stack_push(hi);
         self.stack_push(lo);
+    }
+
+    fn lsr_core(&mut self, data: u8) -> u8 {
+        if data & 1 == 1 {
+            self.status.insert(CpuFlags::CARRY);
+        } else {
+            self.status.remove(CpuFlags::CARRY);
+        }
+        data >> 1
+    }
+
+    fn lsr(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let data = self.mem_read(addr);
+        let value = self.lsr_core(data);
+
+        self.mem_write(addr, value);
+        self.update_zero_and_negative_flags(value);
     }
 
     fn update_zero_and_negative_flags(&mut self, result: u8) {
@@ -1043,5 +1067,23 @@ mod test {
             0x20, 0x07, 0x80, 0x20, 0x0a, 0x80, 0x00, 0xa9, 0x10, 0x60, 0x69, 0x02, 0x60, 0x00,
         ]);
         assert_eq!(cpu.register_a, 0x12);
+    }
+
+    #[test]
+    fn test_lsr_accumulator() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa9, 0x0a, 0x4a, 0x00]);
+        assert_eq!(cpu.register_a, 0x05);
+        assert_eq!(cpu.status.contains(CpuFlags::ZERO), false);
+        assert_eq!(cpu.status.contains(CpuFlags::CARRY), false);
+    }
+
+    #[test]
+    fn test_lsr() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa9, 0x01, 0x85, 0x10, 0x46, 0x10, 0x00]);
+        assert_eq!(cpu.mem_read(0x10), 0x00);
+        assert_eq!(cpu.status.contains(CpuFlags::ZERO), true);
+        assert_eq!(cpu.status.contains(CpuFlags::CARRY), true);
     }
 }
