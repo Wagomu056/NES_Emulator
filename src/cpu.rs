@@ -282,6 +282,10 @@ impl CPU {
                 0xea => {
                     // do nothing
                 }
+                /* ORA */
+                0x09 | 0x05 | 0x15 | 0x0D | 0x1D | 0x19 | 0x01 | 0x11 => {
+                    self.ora(&opcode.mode);
+                }
                 /* STA */
                 0x85 | 0x95 | 0x8d | 0x9d | 0x99 | 0x81 | 0x91 => {
                     self.sta(&opcode.mode);
@@ -418,6 +422,12 @@ impl CPU {
 
         self.status.set(CpuFlags::NEGATIV, data & 0b1000_0000 > 0);
         self.status.set(CpuFlags::OVERFLOW, data & 0b0100_0000 > 0);
+    }
+
+    fn ora(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let data = self.mem_read(addr);
+        self.set_register_a(self.register_a | data);
     }
 
     fn sta(&mut self, mode: &AddressingMode) {
@@ -1089,5 +1099,23 @@ mod test {
         assert_eq!(cpu.mem_read(0x10), 0x00);
         assert_eq!(cpu.status.contains(CpuFlags::ZERO), true);
         assert_eq!(cpu.status.contains(CpuFlags::CARRY), true);
+    }
+
+    #[test]
+    fn test_ora() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa9, 0x01, 0x09, 0x84, 0x00]);
+        assert_eq!(cpu.register_a, 0x85);
+        assert_eq!(cpu.status.contains(CpuFlags::NEGATIV), true);
+        assert_eq!(cpu.status.contains(CpuFlags::ZERO), false);
+    }
+
+    #[test]
+    fn test_ora_zero() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa9, 0x00, 0x09, 0x00, 0x00]);
+        assert_eq!(cpu.register_a, 0x00);
+        assert_eq!(cpu.status.contains(CpuFlags::NEGATIV), false);
+        assert_eq!(cpu.status.contains(CpuFlags::ZERO), true);
     }
 }
