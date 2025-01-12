@@ -278,6 +278,10 @@ impl CPU {
                     self.set_register_a(data);
                 }
                 0x46 | 0x56 | 0x4e | 0x5e => self.lsr(&opcode.mode),
+                /* NOP */
+                0xea => {
+                    // do nothing
+                }
                 /* STA */
                 0x85 | 0x95 | 0x8d | 0x9d | 0x99 | 0x81 | 0x91 => {
                     self.sta(&opcode.mode);
