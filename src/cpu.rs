@@ -286,6 +286,10 @@ impl CPU {
                 0x09 | 0x05 | 0x15 | 0x0D | 0x1D | 0x19 | 0x01 | 0x11 => {
                     self.ora(&opcode.mode);
                 }
+                /* PHA */
+                0x48 => {
+                    self.stack_push(self.register_a);
+                }
                 /* STA */
                 0x85 | 0x95 | 0x8d | 0x9d | 0x99 | 0x81 | 0x91 => {
                     self.sta(&opcode.mode);
@@ -1117,5 +1121,12 @@ mod test {
         assert_eq!(cpu.register_a, 0x00);
         assert_eq!(cpu.status.contains(CpuFlags::NEGATIV), false);
         assert_eq!(cpu.status.contains(CpuFlags::ZERO), true);
+    }
+
+    #[test]
+    fn test_pha() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa9, 0x55, 0x48, 0x00]);
+        assert_eq!(cpu.mem_read(0x01fd), 0x55);
     }
 }
