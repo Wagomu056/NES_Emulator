@@ -303,6 +303,13 @@ impl CPU {
                 0x28 => {
                     self.plp();
                 }
+                /* ROL */
+                0x2a => {
+                    self.rol_accumulator();
+                }
+                0x26 | 0x36 | 0x2e | 0x3e => {
+                    self.rol(&opcode.mode);
+                }
                 /* STA */
                 0x85 | 0x95 | 0x8d | 0x9d | 0x99 | 0x81 | 0x91 => {
                     self.sta(&opcode.mode);
@@ -459,6 +466,35 @@ impl CPU {
         self.status = CpuFlags::from_bits(flags).unwrap();
         self.status.remove(CpuFlags::BREAK);
         self.status.insert(CpuFlags::BREAK2);
+    }
+
+    fn rol_core(&mut self, data: u8) -> u8 {
+        let mut data = data;
+        let old_carry = self.status.contains(CpuFlags::CARRY);
+
+        if data >> 7 == 1 {
+            self.status.insert(CpuFlags::CARRY);
+        } else {
+            self.status.remove(CpuFlags::CARRY);
+        }
+        data = data << 1;
+        if old_carry {
+            data = data | 1;
+        }
+        data
+    }
+
+    fn rol_accumulator(&mut self) {
+        let data = self.rol_core(self.register_a);
+        self.set_register_a(data);
+    }
+
+    fn rol(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let data = self.mem_read(addr);
+        let data = self.rol_core(data);
+        self.update_zero_and_negative_flags(data);
+        self.mem_write(addr, data);
     }
 
     fn sta(&mut self, mode: &AddressingMode) {
@@ -1182,5 +1218,24 @@ mod test {
         assert_eq!(cpu.status.contains(CpuFlags::BREAK), false);
         assert_eq!(cpu.status.contains(CpuFlags::BREAK2), true);
         assert_eq!(cpu.status.contains(CpuFlags::NEGATIV), false);
+    }
+
+    #[test]
+    fn test_rol_accumulator() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa9, 0xff, 0x69, 0x01, 0xa9, 0x99, 0x2a, 0x00]);
+        assert_eq!(cpu.register_a, 0x33);
+        assert_eq!(cpu.status.contains(CpuFlags::CARRY), true);
+    }
+
+    #[test]
+    fn test_rol() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![
+            0xa9, 0xff, 0x69, 0x01, 0xa9, 0x99, 0x85, 0x10, 0x26, 0x10, 0x00,
+        ]);
+        assert_eq!(cpu.register_a, 0x99);
+        assert_eq!(cpu.mem_read(0x10), 0x33);
+        assert_eq!(cpu.status.contains(CpuFlags::CARRY), true);
     }
 }
