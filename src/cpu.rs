@@ -294,6 +294,11 @@ impl CPU {
                 0x08 => {
                     self.php();
                 }
+                /* PLA */
+                0x68 => {
+                    let data = self.stack_pop();
+                    self.set_register_a(data);
+                }
                 /* STA */
                 0x85 | 0x95 | 0x8d | 0x9d | 0x99 | 0x81 | 0x91 => {
                     self.sta(&opcode.mode);
@@ -1147,5 +1152,13 @@ mod test {
         cpu.load_and_run(vec![0x08, 0x00]);
         // BREAK | BREAK2 | INTERRUPT_DISABLE
         assert_eq!(cpu.mem_read(0x01fd), 0b00110100);
+    }
+
+    #[test]
+    fn test_pla() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa9, 0x85, 0x48, 0xa9, 0x00, 0x68, 0x00]);
+        assert_eq!(cpu.register_a, 0x85);
+        assert_eq!(cpu.status.contains(CpuFlags::NEGATIV), true);
     }
 }
