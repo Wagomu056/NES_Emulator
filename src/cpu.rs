@@ -290,7 +290,7 @@ impl CPU {
                 0x48 => {
                     self.stack_push(self.register_a);
                 }
-                /* PHA */
+                /* PHP */
                 0x08 => {
                     self.php();
                 }
@@ -298,6 +298,10 @@ impl CPU {
                 0x68 => {
                     let data = self.stack_pop();
                     self.set_register_a(data);
+                }
+                /* PLP */
+                0x28 => {
+                    self.plp();
                 }
                 /* STA */
                 0x85 | 0x95 | 0x8d | 0x9d | 0x99 | 0x81 | 0x91 => {
@@ -448,6 +452,13 @@ impl CPU {
         flags.insert(CpuFlags::BREAK);
         flags.insert(CpuFlags::BREAK2);
         self.stack_push(flags.bits());
+    }
+
+    fn plp(&mut self) {
+        let flags = self.stack_pop();
+        self.status = CpuFlags::from_bits(flags).unwrap();
+        self.status.remove(CpuFlags::BREAK);
+        self.status.insert(CpuFlags::BREAK2);
     }
 
     fn sta(&mut self, mode: &AddressingMode) {
@@ -1160,5 +1171,16 @@ mod test {
         cpu.load_and_run(vec![0xa9, 0x85, 0x48, 0xa9, 0x00, 0x68, 0x00]);
         assert_eq!(cpu.register_a, 0x85);
         assert_eq!(cpu.status.contains(CpuFlags::NEGATIV), true);
+    }
+
+    #[test]
+    fn test_plp() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa9, 0x36, 0x48, 0x28, 0x00]);
+        assert_eq!(cpu.status.contains(CpuFlags::ZERO), true);
+        assert_eq!(cpu.status.contains(CpuFlags::INTERRUPT_DISABLE), true);
+        assert_eq!(cpu.status.contains(CpuFlags::BREAK), false);
+        assert_eq!(cpu.status.contains(CpuFlags::BREAK2), true);
+        assert_eq!(cpu.status.contains(CpuFlags::NEGATIV), false);
     }
 }
