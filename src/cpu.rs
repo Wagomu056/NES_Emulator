@@ -290,6 +290,10 @@ impl CPU {
                 0x48 => {
                     self.stack_push(self.register_a);
                 }
+                /* PHA */
+                0x08 => {
+                    self.php();
+                }
                 /* STA */
                 0x85 | 0x95 | 0x8d | 0x9d | 0x99 | 0x81 | 0x91 => {
                     self.sta(&opcode.mode);
@@ -432,6 +436,13 @@ impl CPU {
         let addr = self.get_operand_address(mode);
         let data = self.mem_read(addr);
         self.set_register_a(self.register_a | data);
+    }
+
+    fn php(&mut self) {
+        let mut flags = CpuFlags::from_bits(self.status.bits()).unwrap();
+        flags.insert(CpuFlags::BREAK);
+        flags.insert(CpuFlags::BREAK2);
+        self.stack_push(flags.bits());
     }
 
     fn sta(&mut self, mode: &AddressingMode) {
@@ -1128,5 +1139,13 @@ mod test {
         let mut cpu = CPU::new();
         cpu.load_and_run(vec![0xa9, 0x55, 0x48, 0x00]);
         assert_eq!(cpu.mem_read(0x01fd), 0x55);
+    }
+
+    #[test]
+    fn test_php() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0x08, 0x00]);
+        // BREAK | BREAK2 | INTERRUPT_DISABLE
+        assert_eq!(cpu.mem_read(0x01fd), 0b00110100);
     }
 }
