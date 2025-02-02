@@ -366,6 +366,10 @@ impl CPU {
                 0x8a => {
                     self.set_register_a(self.register_x);
                 }
+                /* TXS */
+                0x9a => {
+                    self.stack_pointer = self.register_x;
+                }
                 /* TYA */
                 0x98 => {
                     self.set_register_a(self.register_y);
@@ -1457,6 +1461,14 @@ mod test {
         assert_eq!(cpu.register_x, 0xcc);
         assert_eq!(cpu.register_y, 0x00);
         assert_eq!(cpu.status.contains(CpuFlags::NEGATIV), true);
+    }
+
+    #[test]
+    fn test_txs() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa2, 0xcc, 0x9a, 0x00]);
+        assert_eq!(cpu.register_x, 0xcc);
+        assert_eq!(cpu.stack_pointer, 0xcc);
     }
 
     #[test]
