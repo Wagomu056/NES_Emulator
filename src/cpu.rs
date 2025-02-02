@@ -362,6 +362,14 @@ impl CPU {
                 0xba => {
                     self.set_register_x(self.stack_pointer);
                 }
+                /* TXA */
+                0x8a => {
+                    self.set_register_a(self.register_x);
+                }
+                /* TYA */
+                0x98 => {
+                    self.set_register_a(self.register_y);
+                }
                 0x00 => return,
                 _ => todo!(),
             }
@@ -1438,6 +1446,26 @@ mod test {
         let mut cpu = CPU::new();
         cpu.load_and_run(vec![0x48, 0x48, 0xba, 0x00]);
         assert_eq!(cpu.register_x, STACK_RESET - 2);
+        assert_eq!(cpu.status.contains(CpuFlags::NEGATIV), true);
+    }
+
+    #[test]
+    fn test_txa() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa2, 0xcc, 0x8a, 0x00]);
+        assert_eq!(cpu.register_a, 0xcc);
+        assert_eq!(cpu.register_x, 0xcc);
+        assert_eq!(cpu.register_y, 0x00);
+        assert_eq!(cpu.status.contains(CpuFlags::NEGATIV), true);
+    }
+
+    #[test]
+    fn test_tya() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa0, 0xcc, 0x98, 0x00]);
+        assert_eq!(cpu.register_a, 0xcc);
+        assert_eq!(cpu.register_x, 0x00);
+        assert_eq!(cpu.register_y, 0xcc);
         assert_eq!(cpu.status.contains(CpuFlags::NEGATIV), true);
     }
 }
