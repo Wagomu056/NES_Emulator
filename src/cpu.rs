@@ -268,10 +268,6 @@ impl CPU {
                     self.stack_push_u16(self.program_counter + 2 - 1);
                     self.program_counter = self.mem_read_u16(self.program_counter);
                 }
-                /* RTS */
-                0x60 => {
-                    self.program_counter = self.stack_pop_u16() + 1;
-                }
                 /* LSR */
                 0x4a => {
                     let data = self.lsr_core(self.register_a);
@@ -316,6 +312,15 @@ impl CPU {
                 }
                 0x66 | 0x76 | 0x6e | 0x7e => {
                     self.ror(&opcode.mode);
+                }
+                /* RTI */
+                0x40 => {
+                    self.plp();
+                    self.program_counter = self.stack_pop_u16();
+                }
+                /* RTS */
+                0x60 => {
+                    self.program_counter = self.stack_pop_u16() + 1;
                 }
                 /* STA */
                 0x85 | 0x95 | 0x8d | 0x9d | 0x99 | 0x81 | 0x91 => {
