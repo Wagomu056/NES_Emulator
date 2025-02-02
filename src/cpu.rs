@@ -342,6 +342,14 @@ impl CPU {
                 0x85 | 0x95 | 0x8d | 0x9d | 0x99 | 0x81 | 0x91 => {
                     self.sta(&opcode.mode);
                 }
+                /* STX */
+                0x86 | 0x96 | 0x8e => {
+                    self.stx(&opcode.mode);
+                }
+                /* STY */
+                0x84 | 0x94 | 0x8c => {
+                    self.sty(&opcode.mode);
+                }
 
                 0xAA => self.tax(),
                 0x00 => return,
@@ -557,6 +565,16 @@ impl CPU {
     fn sta(&mut self, mode: &AddressingMode) {
         let addr = self.get_operand_address(mode);
         self.mem_write(addr, self.register_a);
+    }
+
+    fn stx(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        self.mem_write(addr, self.register_x);
+    }
+
+    fn sty(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        self.mem_write(addr, self.register_y);
     }
 
     fn tax(&mut self) {
@@ -1372,5 +1390,21 @@ mod test {
         let mut cpu = CPU::new();
         cpu.load_and_run(vec![0x78, 0x00]);
         assert_eq!(cpu.status.contains(CpuFlags::INTERRUPT_DISABLE), true);
+    }
+
+    #[test]
+    fn test_stx() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa2, 0xcc, 0x86, 0x10, 0x00]);
+        assert_eq!(cpu.register_x, 0xcc);
+        assert_eq!(cpu.mem_read(0x10), 0xcc);
+    }
+
+    #[test]
+    fn test_sty() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa0, 0xcc, 0x84, 0x10, 0x00]);
+        assert_eq!(cpu.register_y, 0xcc);
+        assert_eq!(cpu.mem_read(0x10), 0xcc);
     }
 }
