@@ -350,8 +350,14 @@ impl CPU {
                 0x84 | 0x94 | 0x8c => {
                     self.sty(&opcode.mode);
                 }
-
-                0xAA => self.tax(),
+                /* TAX */
+                0xaa => {
+                    self.set_register_x(self.register_a);
+                }
+                /* TAY */
+                0xa8 => {
+                    self.set_register_y(self.register_a);
+                }
                 0x00 => return,
                 _ => todo!(),
             }
@@ -575,11 +581,6 @@ impl CPU {
     fn sty(&mut self, mode: &AddressingMode) {
         let addr = self.get_operand_address(mode);
         self.mem_write(addr, self.register_y);
-    }
-
-    fn tax(&mut self) {
-        self.register_x = self.register_a;
-        self.update_zero_and_negative_flags(self.register_x);
     }
 
     fn inx(&mut self) {
@@ -1406,5 +1407,25 @@ mod test {
         cpu.load_and_run(vec![0xa0, 0xcc, 0x84, 0x10, 0x00]);
         assert_eq!(cpu.register_y, 0xcc);
         assert_eq!(cpu.mem_read(0x10), 0xcc);
+    }
+
+    #[test]
+    fn test_tax() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa9, 0xcc, 0xaa, 0x00]);
+        assert_eq!(cpu.register_a, 0xcc);
+        assert_eq!(cpu.register_x, 0xcc);
+        assert_eq!(cpu.register_y, 0x00);
+        assert_eq!(cpu.status.contains(CpuFlags::NEGATIV), true);
+    }
+
+    #[test]
+    fn test_tay() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa9, 0xcc, 0xa8, 0x00]);
+        assert_eq!(cpu.register_a, 0xcc);
+        assert_eq!(cpu.register_x, 0x00);
+        assert_eq!(cpu.register_y, 0xcc);
+        assert_eq!(cpu.status.contains(CpuFlags::NEGATIV), true);
     }
 }
