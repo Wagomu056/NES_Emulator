@@ -326,6 +326,10 @@ impl CPU {
                 0x38 => {
                     self.status.insert(CpuFlags::CARRY);
                 }
+                /* SBC */
+                0xe9 | 0xe5 | 0xf5 | 0xed | 0xfd | 0xf9 | 0xe1 | 0xf1 => {
+                    self.sbc(&opcode.mode);
+                }
                 /* STA */
                 0x85 | 0x95 | 0x8d | 0x9d | 0x99 | 0x81 | 0x91 => {
                     self.sta(&opcode.mode);
@@ -648,6 +652,12 @@ impl CPU {
 
         self.mem_write(addr, value);
         self.update_zero_and_negative_flags(value);
+    }
+
+    fn sbc(&mut self, mode: &AddressingMode) {
+        let addr = self.get_operand_address(mode);
+        let data = self.mem_read(addr);
+        self.add_to_register_a(((data as i8).wrapping_neg().wrapping_sub(1)) as u8);
     }
 
     fn update_zero_and_negative_flags(&mut self, result: u8) {
@@ -1307,5 +1317,38 @@ mod test {
         let mut cpu = CPU::new();
         cpu.load_and_run(vec![0x38, 0x00]);
         assert_eq!(cpu.status.contains(CpuFlags::CARRY), true);
+    }
+
+    #[test]
+    fn test_sbc_carry_negative() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa9, 0x00, 0x38, 0xe9, 0x01, 0x00]);
+        assert_eq!(cpu.register_a, 0xff);
+        assert_eq!(cpu.status.contains(CpuFlags::CARRY), false);
+        assert_eq!(cpu.status.contains(CpuFlags::ZERO), false);
+        assert_eq!(cpu.status.contains(CpuFlags::OVERFLOW), false);
+        assert_eq!(cpu.status.contains(CpuFlags::NEGATIV), true);
+    }
+
+    #[test]
+    fn test_sbc_carry_zero() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa9, 0x02, 0xe9, 0x01, 0x00]);
+        assert_eq!(cpu.register_a, 0x00);
+        assert_eq!(cpu.status.contains(CpuFlags::CARRY), true);
+        assert_eq!(cpu.status.contains(CpuFlags::ZERO), true);
+        assert_eq!(cpu.status.contains(CpuFlags::OVERFLOW), false);
+        assert_eq!(cpu.status.contains(CpuFlags::NEGATIV), false);
+    }
+
+    #[test]
+    fn test_sbc_overflow() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xa9, 0x80, 0xe9, 0x01, 0x00]);
+        assert_eq!(cpu.register_a, 0x7e);
+        assert_eq!(cpu.status.contains(CpuFlags::CARRY), true);
+        assert_eq!(cpu.status.contains(CpuFlags::ZERO), false);
+        assert_eq!(cpu.status.contains(CpuFlags::OVERFLOW), true);
+        assert_eq!(cpu.status.contains(CpuFlags::NEGATIV), false);
     }
 }
