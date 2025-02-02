@@ -330,6 +330,14 @@ impl CPU {
                 0xe9 | 0xe5 | 0xf5 | 0xed | 0xfd | 0xf9 | 0xe1 | 0xf1 => {
                     self.sbc(&opcode.mode);
                 }
+                /* SED */
+                0xf8 => {
+                    self.status.insert(CpuFlags::DECIMAL_MODE);
+                }
+                /* SEI */
+                0x78 => {
+                    self.status.insert(CpuFlags::INTERRUPT_DISABLE);
+                }
                 /* STA */
                 0x85 | 0x95 | 0x8d | 0x9d | 0x99 | 0x81 | 0x91 => {
                     self.sta(&opcode.mode);
@@ -1350,5 +1358,19 @@ mod test {
         assert_eq!(cpu.status.contains(CpuFlags::ZERO), false);
         assert_eq!(cpu.status.contains(CpuFlags::OVERFLOW), true);
         assert_eq!(cpu.status.contains(CpuFlags::NEGATIV), false);
+    }
+
+    #[test]
+    fn test_sed() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0xf8, 0x00]);
+        assert_eq!(cpu.status.contains(CpuFlags::DECIMAL_MODE), true);
+    }
+
+    #[test]
+    fn test_sei() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0x78, 0x00]);
+        assert_eq!(cpu.status.contains(CpuFlags::INTERRUPT_DISABLE), true);
     }
 }
