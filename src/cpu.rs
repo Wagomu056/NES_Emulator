@@ -322,6 +322,10 @@ impl CPU {
                 0x60 => {
                     self.program_counter = self.stack_pop_u16() + 1;
                 }
+                /* SEC */
+                0x38 => {
+                    self.status.insert(CpuFlags::CARRY);
+                }
                 /* STA */
                 0x85 | 0x95 | 0x8d | 0x9d | 0x99 | 0x81 | 0x91 => {
                     self.sta(&opcode.mode);
@@ -1295,6 +1299,13 @@ mod test {
             0xa9, 0xff, 0x69, 0x01, 0xa9, 0x99, 0x85, 0x10, 0x66, 0x10, 0x00,
         ]);
         assert_eq!(cpu.mem_read(0x10), 0xcc);
+        assert_eq!(cpu.status.contains(CpuFlags::CARRY), true);
+    }
+
+    #[test]
+    fn test_sec() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0x38, 0x00]);
         assert_eq!(cpu.status.contains(CpuFlags::CARRY), true);
     }
 }
