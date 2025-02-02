@@ -358,6 +358,10 @@ impl CPU {
                 0xa8 => {
                     self.set_register_y(self.register_a);
                 }
+                /* TSX */
+                0xba => {
+                    self.set_register_x(self.stack_pointer);
+                }
                 0x00 => return,
                 _ => todo!(),
             }
@@ -1426,6 +1430,14 @@ mod test {
         assert_eq!(cpu.register_a, 0xcc);
         assert_eq!(cpu.register_x, 0x00);
         assert_eq!(cpu.register_y, 0xcc);
+        assert_eq!(cpu.status.contains(CpuFlags::NEGATIV), true);
+    }
+
+    #[test]
+    fn test_tsx() {
+        let mut cpu = CPU::new();
+        cpu.load_and_run(vec![0x48, 0x48, 0xba, 0x00]);
+        assert_eq!(cpu.register_x, STACK_RESET - 2);
         assert_eq!(cpu.status.contains(CpuFlags::NEGATIV), true);
     }
 }

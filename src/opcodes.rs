@@ -205,6 +205,7 @@ lazy_static! {
 
         OpCode::new(0xaa, "TAX", 1, 2, AddressingMode::NoneAddressing),
         OpCode::new(0xa8, "TAY", 1, 2, AddressingMode::NoneAddressing),
+        OpCode::new(0xba, "TSX", 1, 2, AddressingMode::NoneAddressing),
     ];
 
     pub static ref OPCODE_MAP: HashMap<u8, &'static OpCode> = {
