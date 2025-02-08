@@ -2,7 +2,7 @@ use crate::cpu::CPU;
 use rand::Rng;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
-use sdl2::pixels::{Color, PixelFormat, PixelFormatEnum};
+use sdl2::pixels::{Color, PixelFormatEnum};
 use sdl2::EventPump;
 
 use cpu::Mem;
