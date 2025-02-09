@@ -1,3 +1,4 @@
+use crate::bus::Bus;
 use crate::opcodes;
 use bitflags::{bitflags, Flags};
 use std::collections::HashMap;
@@ -25,7 +26,7 @@ pub struct CPU {
     pub status: CpuFlags,
     pub program_counter: u16,
     pub stack_pointer: u8,
-    memory: [u8; 0xFFFF],
+    pub bus: Bus,
 }
 
 #[derive(Debug)]
@@ -64,11 +65,19 @@ pub trait Mem {
 
 impl Mem for CPU {
     fn mem_read(&self, addr: u16) -> u8 {
-        self.memory[addr as usize]
+        self.bus.mem_read(addr)
     }
 
     fn mem_write(&mut self, addr: u16, data: u8) {
-        self.memory[addr as usize] = data;
+        self.bus.mem_write(addr, data);
+    }
+
+    fn mem_read_u16(&self, pos: u16) -> u16 {
+        self.bus.mem_read_u16(pos)
+    }
+
+    fn mem_write_u16(&mut self, pos: u16, data: u16) {
+        self.bus.mem_write_u16(pos, data);
     }
 }
 
@@ -81,7 +90,7 @@ impl CPU {
             status: CpuFlags::from_bits_truncate(0b100100),
             program_counter: 0,
             stack_pointer: STACK_RESET,
-            memory: [0; 0xFFFF],
+            bus: Bus::new(),
         }
     }
 
@@ -96,9 +105,10 @@ impl CPU {
     }
 
     pub fn load(&mut self, program: Vec<u8>) {
-        //self.memory[0x8000..(0x8000 + program.len())].copy_from_slice(&program[..]);
-        //self.mem_write_u16(0xFFFC, 0x8000);
-        self.memory[0x0600..(0x0600 + program.len())].copy_from_slice(&program[..]);
+        for i in 0..(program.len() as u16) {
+            //self.mem_write(0x0000 + i, program[i as usize]);
+            self.mem_write(0x0600 + i, program[i as usize]);
+        }
         self.mem_write_u16(0xFFFC, 0x0600);
     }
 
@@ -828,7 +838,7 @@ mod test {
     fn test_lda_absolute() {
         let mut cpu = CPU::new();
         cpu.load_and_run(vec![
-            0xa9, 0x42, 0x8d, 0x20, 0x20, 0xa9, 0x00, 0xad, 0x20, 0x20, 0x00,
+            0xa9, 0x42, 0x8d, 0x10, 0x10, 0xa9, 0x00, 0xad, 0x10, 0x10, 0x00,
         ]);
         assert_eq!(cpu.register_a, 0x42);
     }
@@ -837,7 +847,7 @@ mod test {
     fn test_lda_absolute_x() {
         let mut cpu = CPU::new();
         cpu.load_and_run(vec![
-            0xa9, 0x42, 0x8d, 0x20, 0x20, 0xa2, 0x10, 0xa9, 0x00, 0xbd, 0x10, 0x20, 0x00,
+            0xa9, 0x42, 0x8d, 0x20, 0x10, 0xa2, 0x10, 0xa9, 0x00, 0xbd, 0x10, 0x10, 0x00,
         ]);
         assert_eq!(cpu.register_a, 0x42);
     }
@@ -846,7 +856,7 @@ mod test {
     fn test_lda_absolute_y() {
         let mut cpu = CPU::new();
         cpu.load_and_run(vec![
-            0xa9, 0x42, 0x8d, 0x20, 0x20, 0xa0, 0x10, 0xa9, 0x00, 0xb9, 0x10, 0x20, 0x00,
+            0xa9, 0x42, 0x8d, 0x20, 0x10, 0xa0, 0x10, 0xa9, 0x00, 0xb9, 0x10, 0x10, 0x00,
         ]);
         assert_eq!(cpu.register_a, 0x42);
     }
@@ -961,8 +971,8 @@ mod test {
     #[test]
     fn test_sta_absolute() {
         let mut cpu = CPU::new();
-        cpu.load_and_run(vec![0xa9, 0xc5, 0x8d, 0x01, 0xc0, 0x00]);
-        let value = cpu.mem_read_u16(0xc001);
+        cpu.load_and_run(vec![0xa9, 0xc5, 0x8d, 0x01, 0x10, 0x00]);
+        let value = cpu.mem_read_u16(0x1001);
         assert_eq!(value, 0xc5);
     }
 
