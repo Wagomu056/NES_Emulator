@@ -1,4 +1,5 @@
 use crate::bus::Bus;
+use crate::cartridge::Rom;
 use crate::opcodes;
 use bitflags::{bitflags, Flags};
 use std::collections::HashMap;
@@ -82,7 +83,7 @@ impl Mem for CPU {
 }
 
 impl CPU {
-    pub fn new() -> Self {
+    pub fn new_with_bus(bus: Bus) -> Self {
         CPU {
             register_a: 0,
             register_x: 0,
@@ -90,8 +91,15 @@ impl CPU {
             status: CpuFlags::from_bits_truncate(0b100100),
             program_counter: 0,
             stack_pointer: STACK_RESET,
-            bus: Bus::new(),
+            bus,
         }
+    }
+
+    pub fn new() -> Self {
+        let tmp: Vec<u8> = vec![0x00];
+        let rom = Rom::new(&tmp).unwrap();
+        let bus = Bus::new(rom);
+        Self::new_with_bus(bus)
     }
 
     pub fn reset(&mut self) {
@@ -794,11 +802,39 @@ impl CPU {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::cartridge::Rom;
+
+    fn create_dummy_cartridge(main_vec: &Vec<u8>) -> Rom {
+        // create new rom vec as zero size
+        let mut rom_vec = vec![];
+        let header = vec![
+            0x4E, 0x45, 0x53, 0x1A, 0x02, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00,
+        ];
+
+        let pos = header.len() + main_vec.len();
+        rom_vec.extend(header);
+        rom_vec.extend(main_vec);
+
+        // fill zero until 0x800C
+        let size = 0x800C - pos;
+        rom_vec.extend(&vec![0; size]);
+
+        // add program counter 0x8000
+        rom_vec.extend(&vec![0x00, 0x80, 0x00, 0x00]);
+        rom_vec.extend(&vec![0; 0x8000]);
+        Rom::new(&rom_vec).unwrap()
+    }
 
     #[test]
     fn test_0xa9_lda_immediate_load_date() {
-        let mut cpu = CPU::new();
-        cpu.load_and_run(vec![0xa9, 0x05, 0x00]);
+        let vec: Vec<u8> = vec![0xa9, 0x05, 0x00];
+        let rom = create_dummy_cartridge(&vec);
+        let bus = Bus::new(rom);
+        let mut cpu = CPU::new_with_bus(bus);
+        cpu.reset();
+        cpu.run();
+        //cpu.load_and_run(vec![0xa9, 0x05, 0x00]);
         assert_eq!(cpu.register_a, 0x05);
         assert_eq!(cpu.status.contains(CpuFlags::ZERO), false);
         assert_eq!(cpu.status.contains(CpuFlags::NEGATIV), false);

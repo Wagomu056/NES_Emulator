@@ -8,6 +8,7 @@ use sdl2::EventPump;
 use cpu::Mem;
 
 mod bus;
+mod cartridge;
 mod cpu;
 mod opcodes;
 
