@@ -817,14 +817,13 @@ mod test {
         let padding_size = rom_size - main_vec.len() - program_counter.len();
         let padding: Vec<u8> = vec![0; padding_size];
 
-        let mut rom_vec = [
+        let rom_vec = [
             header.as_slice(),
             main_vec.as_slice(),
             padding.as_slice(),
             program_counter.as_slice(),
         ]
         .concat();
-        //let tmp = rom_vec[0x800D];
         Rom::new(&rom_vec).unwrap()
     }
 
