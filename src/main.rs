@@ -12,6 +12,7 @@ mod bus;
 mod cartridge;
 mod cpu;
 mod opcodes;
+mod trace;
 
 fn main() {
     let sdl_context = sdl2::init().unwrap();
