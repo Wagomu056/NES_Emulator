@@ -83,7 +83,7 @@ impl Mem for CPU {
 }
 
 impl CPU {
-    pub fn new_with_bus(bus: Bus) -> Self {
+    pub fn new(bus: Bus) -> Self {
         CPU {
             register_a: 0,
             register_x: 0,
@@ -93,13 +93,6 @@ impl CPU {
             stack_pointer: STACK_RESET,
             bus,
         }
-    }
-
-    pub fn new() -> Self {
-        let tmp: Vec<u8> = vec![0x00];
-        let rom = Rom::new(&tmp).unwrap();
-        let bus = Bus::new(rom);
-        Self::new_with_bus(bus)
     }
 
     pub fn reset(&mut self) {
@@ -830,7 +823,7 @@ mod test {
     fn new_cpu(program: Vec<u8>) -> CPU {
         let rom = create_dummy_cartridge(&program);
         let bus = Bus::new(rom);
-        CPU::new_with_bus(bus)
+        CPU::new(bus)
     }
 
     fn load_and_run(program: Vec<u8>) -> CPU {
@@ -987,7 +980,7 @@ mod test {
         let main_vec = vec![0xa5, 0x10, 0x00];
         let rom = create_dummy_cartridge(&main_vec);
         let bus = Bus::new(rom);
-        let mut cpu = CPU::new_with_bus(bus);
+        let mut cpu = CPU::new(bus);
         cpu.mem_write(0x10, 0x55);
         cpu.reset();
         cpu.run();

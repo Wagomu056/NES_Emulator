@@ -34,7 +34,7 @@ fn main() {
 
     let rom = Rom::new(&bytes).unwrap();
     let bus = bus::Bus::new(rom);
-    let mut cpu = CPU::new_with_bus(bus);
+    let mut cpu = CPU::new(bus);
     cpu.reset();
 
     let mut screen_state = [0u8; 32 * 3 * 32];
