@@ -581,7 +581,7 @@ impl CPU {
         let mut data = data;
         let old_carry = self.status.contains(CpuFlags::CARRY);
 
-        if data >> 7 == 1 {
+        if data & 1 == 1 {
             self.status.insert(CpuFlags::CARRY);
         } else {
             self.status.remove(CpuFlags::CARRY);
