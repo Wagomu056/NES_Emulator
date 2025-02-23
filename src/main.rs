@@ -6,6 +6,7 @@ use sdl2::pixels::{Color, PixelFormatEnum};
 use sdl2::EventPump;
 
 use crate::cartridge::Rom;
+use crate::trace::trace;
 use cpu::Mem;
 
 mod bus;
@@ -31,16 +32,19 @@ fn main() {
         .create_texture_target(PixelFormatEnum::RGB24, 32, 32)
         .unwrap();
 
-    let bytes: Vec<u8> = std::fs::read("snake.nes").unwrap();
+    let bytes: Vec<u8> = std::fs::read("nestest.nes").unwrap();
 
     let rom = Rom::new(&bytes).unwrap();
     let bus = bus::Bus::new(rom);
     let mut cpu = CPU::new(bus);
     cpu.reset();
+    cpu.program_counter = 0xc000;
 
     let mut screen_state = [0u8; 32 * 3 * 32];
     let mut rng = rand::rng();
     cpu.run_with_callback(move |cpu| {
+        println!("{}", trace(cpu));
+        /*
         handle_user_input(cpu, &mut event_pump);
         cpu.mem_write(0xfe, rng.random_range(1..16));
 
@@ -50,6 +54,7 @@ fn main() {
             canvas.present();
         }
         ::std::thread::sleep(std::time::Duration::new(0, 70_000));
+         */
     })
 }
 
