@@ -397,6 +397,14 @@ impl CPU {
                     self.set_register_a(self.register_y);
                 }
                 0x00 => return,
+                // unofficial
+                /* SHX */
+                0x9e => {
+                    let mem_address =
+                        self.mem_read_u16(self.program_counter) + self.register_y as u16;
+                    let data = self.register_x & ((mem_address >> 8) as u8 + 1);
+                    self.mem_write(mem_address, data);
+                }
                 _ => todo!(),
             }
 
