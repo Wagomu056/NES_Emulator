@@ -414,6 +414,13 @@ impl CPU {
                     /* 2 byte NOP (immediate ) */
                     // todo: might be worth doing the read
                 }
+                /* LAX */
+                0xa7 | 0xb7 | 0xaf | 0xbf | 0xa3 | 0xb3 => {
+                    let addr = self.get_operand_address(&opcode.mode);
+                    let value = self.mem_read(addr);
+                    self.set_register_a(value);
+                    self.register_x = self.register_a;
+                }
                 /* SHX */
                 0x9e => {
                     let mem_address =
