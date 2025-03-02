@@ -6,4 +6,4 @@ cd ../
 cargo run > script/mynes.log
 cd script || exit 1
 
-vimdiff mynes.log nestest_no_cycle.log
+vimdiff nestest_no_cycle.log mynes.log

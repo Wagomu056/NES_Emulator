@@ -398,6 +398,22 @@ impl CPU {
                 }
                 0x00 => return,
                 // unofficial
+                /* NOP */
+                0x04 | 0x44 | 0x64 | 0x0c | 0x14 | 0x34 | 0x54 | 0x74 | 0xd4 | 0xf4 | 0x1c
+                | 0x3c | 0x5c | 0x7c | 0xdc | 0xfc => {
+                    let addr = self.get_operand_address(&opcode.mode);
+                    let _data = self.mem_read(addr);
+                    // do nothing
+                }
+                /* NOP */
+                0x1a | 0x3a | 0x5a | 0x7a | 0xda | 0xfa => {
+                    // do nothing
+                }
+                /* SKB */
+                0x80 | 0x82 | 0x89 | 0xc2 | 0xe2 => {
+                    /* 2 byte NOP (immediate ) */
+                    // todo: might be worth doing the read
+                }
                 /* SHX */
                 0x9e => {
                     let mem_address =
