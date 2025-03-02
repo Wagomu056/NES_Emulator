@@ -428,6 +428,12 @@ impl CPU {
                     let data = self.register_x & ((mem_address >> 8) as u8 + 1);
                     self.mem_write(mem_address, data);
                 }
+                /* SAX */
+                0x87 | 0x97 | 0x8f | 0x83 => {
+                    let data = self.register_a & self.register_x;
+                    let addr = self.get_operand_address(&opcode.mode);
+                    self.mem_write(addr, data);
+                }
                 _ => todo!(),
             }
 
