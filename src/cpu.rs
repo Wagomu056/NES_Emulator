@@ -450,6 +450,12 @@ impl CPU {
                     }
                     self.update_zero_and_negative_flags(self.register_a.wrapping_sub(data));
                 }
+                /* ISB */
+                0xe7 | 0xf7 | 0xef | 0xff | 0xfb | 0xe3 | 0xf3 => {
+                    let data = self.inc(&opcode.mode);
+                    self.sub_from_register_a(data);
+                }
+
                 _ => todo!(),
             }
 
@@ -722,13 +728,14 @@ impl CPU {
         self.set_register_a(value ^ self.register_a);
     }
 
-    fn inc(&mut self, mode: &AddressingMode) {
+    fn inc(&mut self, mode: &AddressingMode) -> u8 {
         let addr = self.get_operand_address(mode);
         let value = self.mem_read(addr);
         let value = value.wrapping_add(1);
         self.mem_write(addr, value);
 
         self.update_zero_and_negative_flags(value);
+        value
     }
 
     fn stack_pop(&mut self) -> u8 {
@@ -772,10 +779,14 @@ impl CPU {
         self.update_zero_and_negative_flags(value);
     }
 
+    fn sub_from_register_a(&mut self, data: u8) {
+        self.add_to_register_a(((data as i8).wrapping_neg().wrapping_sub(1)) as u8);
+    }
+
     fn sbc(&mut self, mode: &AddressingMode) {
         let addr = self.get_operand_address(mode);
         let data = self.mem_read(addr);
-        self.add_to_register_a(((data as i8).wrapping_neg().wrapping_sub(1)) as u8);
+        self.sub_from_register_a(data);
     }
 
     fn update_zero_and_negative_flags(&mut self, result: u8) {
