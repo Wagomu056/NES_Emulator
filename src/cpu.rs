@@ -434,6 +434,10 @@ impl CPU {
                     let addr = self.get_operand_address(&opcode.mode);
                     self.mem_write(addr, data);
                 }
+                /* SBC */
+                0xeb => {
+                    self.sbc(&opcode.mode);
+                }
                 _ => todo!(),
             }
 
