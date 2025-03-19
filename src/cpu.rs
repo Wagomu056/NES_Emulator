@@ -295,7 +295,9 @@ impl CPU {
                     let data = self.lsr_core(self.register_a);
                     self.set_register_a(data);
                 }
-                0x46 | 0x56 | 0x4e | 0x5e => self.lsr(&opcode.mode),
+                0x46 | 0x56 | 0x4e | 0x5e => {
+                    self.lsr(&opcode.mode);
+                }
                 /* NOP */
                 0xea => {
                     // do nothing
@@ -466,6 +468,12 @@ impl CPU {
                 0x27 | 0x37 | 0x2F | 0x3F | 0x3b | 0x23 | 0x33 => {
                     let data = self.rol(&opcode.mode);
                     self.and_with_register_a(data);
+                }
+
+                /* SRE */
+                0x47 | 0x57 | 0x4F | 0x5f | 0x5b | 0x43 | 0x53 => {
+                    let data = self.lsr(&opcode.mode);
+                    self.xor_with_register_a(data);
                 }
 
                 _ => todo!(),
@@ -745,8 +753,12 @@ impl CPU {
 
     fn eor(&mut self, mode: &AddressingMode) {
         let addr = self.get_operand_address(mode);
-        let value = self.mem_read(addr);
-        self.set_register_a(value ^ self.register_a);
+        let data = self.mem_read(addr);
+        self.xor_with_register_a(data);
+    }
+
+    fn xor_with_register_a(&mut self, data: u8) {
+        self.set_register_a(self.register_a ^ data);
     }
 
     fn inc(&mut self, mode: &AddressingMode) -> u8 {
@@ -791,13 +803,14 @@ impl CPU {
         data >> 1
     }
 
-    fn lsr(&mut self, mode: &AddressingMode) {
+    fn lsr(&mut self, mode: &AddressingMode) -> u8 {
         let addr = self.get_operand_address(mode);
         let data = self.mem_read(addr);
         let value = self.lsr_core(data);
 
         self.mem_write(addr, value);
         self.update_zero_and_negative_flags(value);
+        value
     }
 
     fn sub_from_register_a(&mut self, data: u8) {
