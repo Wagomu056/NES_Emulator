@@ -462,6 +462,12 @@ impl CPU {
                     self.or_with_register_a(data);
                 }
 
+                /* RLA */
+                0x27 | 0x37 | 0x2F | 0x3F | 0x3b | 0x23 | 0x33 => {
+                    let data = self.rol(&opcode.mode);
+                    self.and_with_register_a(data);
+                }
+
                 _ => todo!(),
             }
 
@@ -520,8 +526,12 @@ impl CPU {
 
     fn and(&mut self, mode: &AddressingMode) {
         let addr = self.get_operand_address(mode);
-        let value = self.mem_read(addr);
-        self.set_register_a(value & self.register_a);
+        let data = self.mem_read(addr);
+        self.and_with_register_a(data);
+    }
+
+    fn and_with_register_a(&mut self, data: u8) {
+        self.set_register_a(data & self.register_a);
     }
 
     fn asl_accumulator(&mut self) {
@@ -638,12 +648,13 @@ impl CPU {
         self.set_register_a(data);
     }
 
-    fn rol(&mut self, mode: &AddressingMode) {
+    fn rol(&mut self, mode: &AddressingMode) -> u8 {
         let addr = self.get_operand_address(mode);
         let data = self.mem_read(addr);
         let data = self.rol_core(data);
         self.update_zero_and_negative_flags(data);
         self.mem_write(addr, data);
+        data
     }
 
     fn ror_core(&mut self, data: u8) -> u8 {
