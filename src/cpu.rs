@@ -456,6 +456,12 @@ impl CPU {
                     self.sub_from_register_a(data);
                 }
 
+                /* SLO */
+                0x07 | 0x17 | 0x0F | 0x1F | 0x1b | 0x03 | 0x13 => {
+                    let data = self.asl(&opcode.mode);
+                    self.or_with_register_a(data);
+                }
+
                 _ => todo!(),
             }
 
@@ -590,6 +596,10 @@ impl CPU {
     fn ora(&mut self, mode: &AddressingMode) {
         let addr = self.get_operand_address(mode);
         let data = self.mem_read(addr);
+        self.or_with_register_a(data);
+    }
+
+    fn or_with_register_a(&mut self, data: u8) {
         self.set_register_a(self.register_a | data);
     }
 

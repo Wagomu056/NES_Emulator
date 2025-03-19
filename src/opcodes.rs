@@ -275,6 +275,14 @@ lazy_static! {
         OpCode::new(0xfb, "*ISB", 3,7, AddressingMode::Absolute_Y),
         OpCode::new(0xe3, "*ISB", 2,8, AddressingMode::Indirect_X),
         OpCode::new(0xf3, "*ISB", 2,8, AddressingMode::Indirect_Y),
+
+        OpCode::new(0x07, "*SLO", 2, 5, AddressingMode::ZeroPage),
+        OpCode::new(0x17, "*SLO", 2, 6, AddressingMode::ZeroPage_X),
+        OpCode::new(0x0F, "*SLO", 3, 6, AddressingMode::Absolute),
+        OpCode::new(0x1F, "*SLO", 3, 7, AddressingMode::Absolute_X),
+        OpCode::new(0x1b, "*SLO", 3, 7, AddressingMode::Absolute_Y),
+        OpCode::new(0x03, "*SLO", 2, 8, AddressingMode::Indirect_X),
+        OpCode::new(0x13, "*SLO", 2, 8, AddressingMode::Indirect_Y),
     ];
 
     pub static ref OPCODE_MAP: HashMap<u8, &'static OpCode> = {
