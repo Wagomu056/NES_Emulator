@@ -457,25 +457,26 @@ impl CPU {
                     let data = self.inc(&opcode.mode);
                     self.sub_from_register_a(data);
                 }
-
                 /* SLO */
                 0x07 | 0x17 | 0x0F | 0x1F | 0x1b | 0x03 | 0x13 => {
                     let data = self.asl(&opcode.mode);
                     self.or_with_register_a(data);
                 }
-
                 /* RLA */
                 0x27 | 0x37 | 0x2F | 0x3F | 0x3b | 0x23 | 0x33 => {
                     let data = self.rol(&opcode.mode);
                     self.and_with_register_a(data);
                 }
-
                 /* SRE */
                 0x47 | 0x57 | 0x4F | 0x5f | 0x5b | 0x43 | 0x53 => {
                     let data = self.lsr(&opcode.mode);
                     self.xor_with_register_a(data);
                 }
-
+                /* RRA */
+                0x67 | 0x77 | 0x6f | 0x7f | 0x7b | 0x63 | 0x73 => {
+                    let data = self.ror(&opcode.mode);
+                    self.add_to_register_a(data);
+                }
                 _ => todo!(),
             }
 
@@ -686,12 +687,13 @@ impl CPU {
         self.set_register_a(data);
     }
 
-    fn ror(&mut self, mode: &AddressingMode) {
+    fn ror(&mut self, mode: &AddressingMode) -> u8 {
         let addr = self.get_operand_address(mode);
         let data = self.mem_read(addr);
         let data = self.ror_core(data);
         self.update_zero_and_negative_flags(data);
         self.mem_write(addr, data);
+        data
     }
 
     fn sta(&mut self, mode: &AddressingMode) {
